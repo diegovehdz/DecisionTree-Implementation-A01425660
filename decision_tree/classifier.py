@@ -1,4 +1,5 @@
 """Classification tree skeleton."""
+import numpy as np
 from .base import BaseDecisionTree
 
 
@@ -40,7 +41,16 @@ class DecisionTreeClassifier(BaseDecisionTree):
         Returns:
             float: Impurity (0 if pure).
         """
-        raise NotImplementedError("TODO: gini / entropy")
+        y = np.asarray(y)
+        if y.size == 0:
+            return 0.0
+        # p_k = fraccion de muestras de cada clase
+        _, counts = np.unique(y, return_counts=True)
+        probs = counts / counts.sum()
+        if self.criterion == "gini":
+            return float(1.0 - np.sum(probs ** 2))
+        # 'entropy' se agrega en el paso 4
+        raise ValueError(f"Criterio no soportado (aun): {self.criterion!r}")
 
     def _best_split(self, X, y):
         """Search all features/thresholds for the largest impurity decrease.
@@ -64,7 +74,9 @@ class DecisionTreeClassifier(BaseDecisionTree):
         Returns:
             The prediction for the leaf.
         """
-        raise NotImplementedError("TODO: majority class")
+        y = np.asarray(y)
+        values, counts = np.unique(y, return_counts=True)
+        return values[np.argmax(counts)]
 
     def _score(self, y_true, y_pred):
         """Metric for ``eval``: accuracy = fraction of correct predictions.
@@ -76,4 +88,6 @@ class DecisionTreeClassifier(BaseDecisionTree):
         Returns:
             float: Score (higher is better).
         """
-        raise NotImplementedError("TODO: accuracy")
+        y_true = np.asarray(y_true)
+        y_pred = np.asarray(y_pred)
+        return float(np.mean(y_true == y_pred))
