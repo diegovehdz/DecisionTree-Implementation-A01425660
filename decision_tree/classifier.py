@@ -63,7 +63,33 @@ class DecisionTreeClassifier(BaseDecisionTree):
             tuple (int, float) or None: ``(feature_index, threshold)``, or
             None if no split reduces impurity.
         """
-        raise NotImplementedError("TODO")
+        X = np.asarray(X, dtype=float)
+        y = np.asarray(y)
+        n_samples, n_features = X.shape
+        parent_impurity = self._impurity(y)
+
+        best_gain = 0.0
+        best_split = None
+        for feature_index in range(n_features):
+            column = X[:, feature_index]
+            # umbrales candidatos: puntos medios entre valores unicos ordenados
+            # (para una columna one-hot de 0/1, el unico umbral es 0.5)
+            values = np.unique(column)
+            thresholds = (values[:-1] + values[1:]) / 2.0
+            for threshold in thresholds:
+                left_mask = column <= threshold
+                n_left = int(left_mask.sum())
+                n_right = n_samples - n_left
+                if n_left == 0 or n_right == 0:
+                    continue
+                # impureza ponderada de los dos hijos
+                weighted = (n_left * self._impurity(y[left_mask])
+                            + n_right * self._impurity(y[~left_mask])) / n_samples
+                gain = parent_impurity - weighted
+                if gain > best_gain:
+                    best_gain = gain
+                    best_split = (feature_index, float(threshold))
+        return best_split
 
     def _leaf_value(self, y):
         """Return the majority (most frequent) class of y.
