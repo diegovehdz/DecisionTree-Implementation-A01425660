@@ -1,6 +1,7 @@
 """Classification tree skeleton."""
 import numpy as np
 from .base import BaseDecisionTree
+from .node import Node
 
 
 class DecisionTreeClassifier(BaseDecisionTree):
@@ -14,6 +15,8 @@ class DecisionTreeClassifier(BaseDecisionTree):
     Each hook below documents what it receives and must return; see
     ``BaseDecisionTree`` for the full contract.
     """
+
+    _valid_criteria = ("gini",)  # 'entropy' se habilita en el paso 4
 
     def __init__(self, max_depth=None, min_samples_split=2, criterion="gini"):
         super().__init__(max_depth, min_samples_split, criterion)
@@ -30,7 +33,22 @@ class DecisionTreeClassifier(BaseDecisionTree):
             Node: Leaf (when a stopping rule triggers) or internal node with
             two subtrees built from the best split.
         """
-        raise NotImplementedError("TODO")
+        # criterios de paro -> devolver una hoja
+        if (len(y) < self.min_samples_split
+                or (self.max_depth is not None and depth >= self.max_depth)
+                or self._impurity(y) == 0.0):          # nodo puro
+            return Node(value=self._leaf_value(y))
+
+        split = self._best_split(X, y)
+        if split is None:                              # ningun corte reduce impureza
+            return Node(value=self._leaf_value(y))
+
+        feature_index, threshold = split
+        left_mask = X[:, feature_index] <= threshold
+        left = self._build_tree(X[left_mask], y[left_mask], depth + 1)
+        right = self._build_tree(X[~left_mask], y[~left_mask], depth + 1)
+        return Node(feature_index=feature_index, threshold=threshold,
+                    left=left, right=right)
 
     def _impurity(self, y):
         """Impurity of ``y`` per ``self.criterion``: Gini impurity 1 - sum(p_k^2) or entropy -sum(p_k * log2(p_k)), where p_k is the fraction of samples of class k.
